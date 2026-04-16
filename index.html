@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>价格比对</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --bg-accent: linear-gradient(165deg, #e8eef8 0%, #f4f0fb 45%, #eef6f4 100%);
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-secondary: #475569;
+      --muted: #94a3b8;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-soft: rgba(79, 70, 229, 0.08);
+      --success: #059669;
+      --success-bg: #ecfdf5;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 24px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.03), 0 12px 40px rgba(15, 23, 42, 0.08);
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-accent);
+      background-attachment: fixed;
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px 20px 48px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 1040px; margin: 0 auto; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-hero {
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .card-hero::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #818cf8, #34d399);
+      opacity: 0.95;
+    }
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    h3 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px 10px;
+    }
+
+    .section-title { margin-top: 28px; }
+
+    .hint {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      line-height: 1.55;
+    }
+    .hint code {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 2px 6px;
+      background: #e2e8f0;
+      border-radius: 5px;
+      color: #334155;
+    }
+    .hint strong { color: var(--text); }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin: 16px 0 8px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      background: #fafbfc;
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    input:hover, textarea:hover { border-color: #cbd5e1; background: #fff; }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    textarea {
+      min-height: 108px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px 18px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+      transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
+    }
+    button:hover:not(:disabled) {
+      filter: brightness(1.05);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+    }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 14px rgba(79, 70, 229, 0.4);
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .status.ok {
+      color: var(--success);
+      background: var(--success-bg);
+    }
+    .status.err {
+      color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+      gap: 12px;
+    }
+    .item {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .item:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+    .v { font-size: 14px; word-break: break-word; color: var(--text); }
+    .v-missing { color: var(--danger); font-weight: 600; }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fafbfc;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th, td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: linear-gradient(180deg, #f1f5f9 0%, #e8eef4 100%);
+      color: #334155;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    tbody tr { background: #fff; transition: background 0.1s; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .muted { color: var(--muted); }
+
+    .ui-hidden {
+      display: none !important;
+    }
+
+    .fee-pending-hint {
+      margin: 0 0 20px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: var(--danger);
+      background: var(--danger-bg);
+      border: 1px solid rgba(220, 38, 38, 0.28);
+    }
+
+    .channel-prices-wrap {
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    .channel-prices-wrap.muted {
+      padding: 16px;
+      text-align: center;
+      border-radius: var(--radius-sm);
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+    }
+
+    .channel-group { margin-bottom: 20px; }
+    .channel-group h4 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
+
+    .cmp-ok { color: var(--success); font-weight: 600; }
+    .cmp-bad { color: var(--danger); font-weight: 600; }
+    .cmp-group-head {
+      border: 1px solid #94a3b8 !important;
+      background: #f1f5f9 !important;
+    }
+    .cmp-pair-left {
+      border-left: 2px solid currentColor !important;
+      border-top: 1px solid #e2e8f0 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .cmp-pair-right {
+      border-right: 2px solid currentColor !important;
+      border-top: 1px solid #e2e8f0 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    .channel-key-highlight {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border: 1px solid #6ee7b7;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 1px 4px rgba(5, 150, 105, 0.12);
+    }
+
+    .title-channel {
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: #f1f5f9;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    .card-calendar-json { display: none; }
+    .card-raw-json { display: none; }
+
+    .env-field { margin-bottom: 0; }
+    .env-select-wrap { margin-top: 4px; }
+    .env-select-wrap select {
+      width: 100%;
+      max-width: 320px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      background: #fafbfc;
+      cursor: pointer;
+    }
+    .env-select-wrap select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+      background: #fff;
+    }
+    .env-endpoints {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+    .env-endpoints-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .env-url-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px 14px;
+      align-items: start;
+      padding: 8px 0;
+      border-top: 1px solid #e2e8f0;
+    }
+    .env-url-row:first-of-type { border-top: none; padding-top: 0; }
+    .env-url-k {
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding-top: 2px;
+    }
+    .env-url-row code {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.45;
+      word-break: break-all;
+      color: #334155;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      background: linear-gradient(165deg, #0c1222 0%, #0f172a 100%);
+      color: #c7d2fe;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      overflow: auto;
+      max-height: 450px;
+      border: 1px solid #1e293b;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card card-hero">
+      <h2>价格比对</h2>
+      <div class="hint">先在本目录运行 <code>python3 server.py</code>，再用浏览器打开 <strong>http://127.0.0.1:8787/</strong>（不要直接用 file:// 打开本文件）。代理会自动带上与「目标订单接口」同域的 Origin/Referer 和常见浏览器头。</div>
+
+      <input type="hidden" id="proxyUrl" value="http://127.0.0.1:8787/api/order-detail" />
+
+      <label class="env-field" for="runtimeEnv">环境</label>
+      <div class="env-select-wrap">
+        <select id="runtimeEnv" name="runtimeEnv">
+          <option value="uat">UAT</option>
+          <option value="pre">预发</option>
+          <option value="prod" selected>生产</option>
+        </select>
+      </div>
+      <p id="envEndpointsHint" class="hint ui-hidden" style="margin-top:12px;margin-bottom:0;">
+        当前环境将请求下列上游地址（如需调整可在脚本 <code>ENV_ENDPOINTS</code> 中修改）。
+      </p>
+      <div class="env-endpoints ui-hidden" aria-live="polite">
+        <div class="env-endpoints-title">本环境三条接口</div>
+        <div class="env-url-row">
+          <span class="env-url-k">订单详情</span>
+          <code id="envUrlOrder"></code>
+        </div>
+        <div class="env-url-row">
+          <span class="env-url-k">车型 list</span>
+          <code id="envUrlCar"></code>
+        </div>
+        <div class="env-url-row">
+          <span class="env-url-k">日历价</span>
+          <code id="envUrlCalendar"></code>
+        </div>
+      </div>
+
+      <label for="cookie">Cookie</label>
+      <textarea id="cookie" placeholder="粘贴完整 Cookie"></textarea>
+
+      <label for="orderNo">订单号</label>
+      <input id="orderNo" placeholder="请输入订单号" />
+
+      <!--
+      门店编码 pickupStoreCode + billingSpuId → queryBatchChannelPrice（已注释）
+      <label for="channelPriceProxyUrl">渠道价格代理地址</label>
+      <input id="channelPriceProxyUrl" value="http://127.0.0.1:8787/api/channel-price-limit" />
+
+      <label for="channelPriceTargetUrl">渠道价格上游接口地址</label>
+      <input id="channelPriceTargetUrl" value="http://mdscr.travel.17usoft.com/revenueapi/dispatch/channelPriceLimit/queryBatchChannelPrice" />
+      -->
+
+      <button id="queryBtn">查询订单详情</button>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div id="feePendingHint" class="fee-pending-hint" role="status" hidden></div>
+
+    <div class="card">
+      <h3>关键字段</h3>
+      <div id="fields" class="kv"></div>
+    </div>
+
+    <!--
+    门店编码 + billingSpuId 调 queryBatchChannelPrice（已注释）
+    <div class="card">
+      <h3>渠道价格限制（queryBatchChannelPrice）</h3>
+      <div class="hint">订单详情返回后，若有 <code>pickupStoreCode</code> 与 <code>billingSpuId</code>，会自动 POST <code>{"storeCode","hatchbackCode"}</code> 到上方「渠道价格上游接口」。</div>
+      <pre id="channelPriceOut">{}</pre>
+    </div>
+    -->
+
+    <div class="card card-calendar-json">
+      <h3>渠道日历价（loadChannelAllCalendarPrices）</h3>
+      <div class="hint"><code>startDate</code> / <code>endDate</code> 均取订单 <code>createTime</code> 的日期；入参还含 <code>carModelId</code>（车型 id）、<code>storeCode</code>（取车门店编码）；<code>licenseType</code> 固定为 <code>0</code>。</div>
+      <pre id="calendarPriceOut">{}</pre>
+    </div>
+
+    <div class="card">
+      <h3>订单费用明细<span id="feeDetailChannelBadge" class="title-channel"></span></h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>订单日期</th>
+              <th>订单记录日历价</th>
+              <th>订单手续费</th>
+              <th>订单基础保障</th>
+              <th>订单优享保障</th>
+              <th>订单尊享保障</th>
+            </tr>
+          </thead>
+          <tbody id="feeDetailBody">
+            <tr><td colspan="6" class="muted">暂无数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 class="section-title">收益价格明细<span id="revenueChannelBadge" class="title-channel"></span></h3>
+      <div id="channelPricesTables" class="channel-prices-wrap muted">暂无数据</div>
+      <h3 class="section-title">价格对比结果</h3>
+      <div class="table-wrap">
+        <table>
+          <thead id="priceCompareHead">
+            <tr>
+              <th>对比日期</th>
+              <th>订单记录日历价</th>
+              <th>收益日历价</th>
+            </tr>
+          </thead>
+          <tbody id="priceCompareBody">
+            <tr><td colspan="20" class="muted">暂无数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card card-raw-json">
+      <h3>原始响应 JSON</h3>
+      <pre id="jsonOut">{}</pre>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const fieldsEl = $("fields");
+    const feeDetailBodyEl = $("feeDetailBody");
+    const feePendingHintEl = $("feePendingHint");
+    const calendarPriceOut = $("calendarPriceOut");
+    const channelPricesTablesEl = $("channelPricesTables");
+    const priceCompareHeadEl = $("priceCompareHead");
+    const priceCompareBodyEl = $("priceCompareBody");
+    // const channelPriceOut = $("channelPriceOut"); // 渠道价格模块已注释
+    const jsonOut = $("jsonOut");
+    const queryBtn = $("queryBtn");
+
+    const DEFAULT_ORDER_REQUEST_METHOD = "GET";
+    const RUNTIME_ENV_STORAGE_KEY = "orderDetailProxyRuntimeEnv";
+
+    /** 各环境三条上游 URL（与代理 POST 里 targetUrl 一致） */
+    const ENV_ENDPOINTS = {
+      uat: {
+        label: "UAT",
+        orderDetail: "http://ibd-travel.uat.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
+        carSpuList: "http://ibd-travel.uat.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
+        calendarPrices: "http://mdscr.travel.uat.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
+      },
+      pre: {
+        label: "预发",
+        orderDetail: "http://ibd-travel.t.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
+        carSpuList: "http://ibd-travel.t.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
+        calendarPrices: "http://mdscr.travel.t.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
+      },
+      prod: {
+        label: "生产",
+        orderDetail: "http://ibd-travel.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
+        carSpuList: "http://ibd-travel.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
+        calendarPrices: "http://mdscr.travel.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
+      },
+    };
+
+    const getSelectedEnvKey = () => {
+      const el = $("runtimeEnv");
+      const v = el && el.value ? String(el.value) : "prod";
+      return ENV_ENDPOINTS[v] ? v : "prod";
+    };
+
+    const getActiveEndpoints = () => ENV_ENDPOINTS[getSelectedEnvKey()] || ENV_ENDPOINTS.prod;
+
+    const refreshEnvEndpointDisplay = () => {
+      const t = getActiveEndpoints();
+      const o = $("envUrlOrder");
+      const c = $("envUrlCar");
+      const cal = $("envUrlCalendar");
+      if (o) o.textContent = t.orderDetail;
+      if (c) c.textContent = t.carSpuList;
+      if (cal) cal.textContent = t.calendarPrices;
+    };
+
+    const initRuntimeEnvUI = () => {
+      const sel = $("runtimeEnv");
+      if (!sel) return;
+      try {
+        const saved = localStorage.getItem(RUNTIME_ENV_STORAGE_KEY);
+        if (saved && ENV_ENDPOINTS[saved]) sel.value = saved;
+      } catch (_) { /* ignore */ }
+      sel.addEventListener("change", () => {
+        try {
+          localStorage.setItem(RUNTIME_ENV_STORAGE_KEY, sel.value);
+        } catch (_) { /* ignore */ }
+        refreshEnvEndpointDisplay();
+      });
+      refreshEnvEndpointDisplay();
+    };
+
+    const CHANNEL_MAP = { qinglu: "ctrip", madatravel: "store" };
+
+    const clearFeePendingHint = () => {
+      if (!feePendingHintEl) return;
+      feePendingHintEl.textContent = "";
+      feePendingHintEl.hidden = true;
+    };
+
+    const showFeePendingHint = () => {
+      if (!feePendingHintEl) return;
+      feePendingHintEl.textContent = "当前订单状态非「待取车」，费用明细数值不展示";
+      feePendingHintEl.hidden = false;
+    };
+
+    const syncSectionChannelBadges = (orderData) => {
+      const feeEl = $("feeDetailChannelBadge");
+      const revEl = $("revenueChannelBadge");
+      const raw = String(orderData?.distributor ?? "").trim();
+      if (feeEl) feeEl.textContent = raw ? "（订单渠道：" + raw + "）" : "";
+      if (revEl) {
+        const oc = raw.toLowerCase();
+        revEl.textContent = oc ? "（收益渠道：" + (CHANNEL_MAP[oc] || oc) + "）" : "";
+      }
+    };
+
+    const setStatus = (msg, ok) => {
+      statusEl.textContent = msg;
+      statusEl.className = "status " + (ok ? "ok" : "err");
+    };
+
+    /** 接口字段进 DOM 前转义，避免 XSS（仍用 innerHTML 拼结构） */
+    const escapeHtml = (s) => String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    const pick = (obj, path) => {
+      try { return path.split(".").reduce((a, k) => (a == null ? undefined : a[k]), obj); }
+      catch (_) { return undefined; }
+    };
+
+    /** 从创单时间解析 YYYY-MM-DD（用于日历价 start/end） */
+    const parseCreateDateYmd = (createTime) => {
+      if (createTime == null || String(createTime).trim() === "") return null;
+      const s = String(createTime).trim();
+      const m1 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m1) return m1[1];
+      const m2 = s.match(/^(\d{4}-\d{2}-\d{2})T/);
+      if (m2) return m2[1];
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const da = String(d.getDate()).padStart(2, "0");
+        return y + "-" + mo + "-" + da;
+      }
+      return null;
+    };
+
+    const ORDER_STATUS_MAP = {
+      0: "待支付",
+      1: "已支付",
+      2: "待取车",
+      3: "已取车",
+      4: "已还车",
+      5: "已完结",
+      6: "已取消"
+    };
+    const ORDER_STATUS_PENDING_PICKUP = 2;
+
+    /** 仅待取车继续请求车型 list / 日历价 / 收益对比 */
+    const isOrderStatusPendingPickup = (orderData) => {
+      const n = Number(pick(orderData, "orderStatus"));
+      if (Number.isFinite(n) && n === ORDER_STATUS_PENDING_PICKUP) return true;
+      const name = String(pick(orderData, "statusName") ?? orderData?.statusName ?? "").trim();
+      return name.includes("待取车");
+    };
+    const renderFields = (data, options = {}) => {
+      const d = data?.data ?? data;
+      const billingSpuId = pick(d, "billingSpuId");
+      const modelId = options.modelId;
+      const orderStatusRaw = pick(d, "orderStatus");
+      const orderStatusText = ORDER_STATUS_MAP[Number(orderStatusRaw)] ?? pick(d, "statusName") ?? pick(d, "status") ?? orderStatusRaw;
+      const distributorRaw = pick(d, "distributor");
+      const distributorText = distributorRaw == null || String(distributorRaw).trim() === ""
+        ? undefined
+        : String(distributorRaw);
+      const storeCode = pick(d, "pickupStoreCode");
+      const storeName = pick(d, "pickupStoreName");
+      const rows = [
+        { k: "订单号", v: pick(d, "orderNo") ?? pick(d, "order_no") },
+        { k: "订单渠道", v: distributorText },
+        { k: "取车门店编码", v: storeCode },
+        { k: "取车门店名称", v: storeName },
+        { k: "预计取车时间", v: pick(d, "pickupExpectedTime") },
+        { k: "预计还车时间", v: pick(d, "returnExpectedTime") },
+        { k: "计费车型 ID", v: billingSpuId, alwaysShow: true, missingRed: true },
+        { k: "车型 id", v: modelId },
+        { k: "订单状态", v: orderStatusText },
+        { k: "下单人", v: pick(d, "userName") ?? pick(d, "contactName") },
+        { k: "手机号", v: pick(d, "mobile") ?? pick(d, "contactMobile") },
+        { k: "总金额", v: pick(d, "totalAmount") ?? pick(d, "payAmount") }
+      ];
+      fieldsEl.innerHTML = "";
+      rows.forEach((row) => {
+        const k = row.k;
+        const v = row.v;
+        const isMissing = v == null || String(v).trim() === "";
+        if (isMissing && !row.alwaysShow) return;
+        const node = document.createElement("div");
+        node.className = "item" + (row.k === "订单渠道" && !isMissing ? " channel-key-highlight" : "");
+        const valueClass = "v" + ((isMissing && row.missingRed) ? " v-missing" : "");
+        node.innerHTML = '<div class="k">' + escapeHtml(k) + '</div><div class="' + valueClass + '">' + (isMissing ? "" : escapeHtml(String(v))) + '</div>';
+        fieldsEl.appendChild(node);
+      });
+      if (!fieldsEl.children.length) {
+        const node = document.createElement("div");
+        node.className = "item";
+        node.innerHTML = '<div class="k">提示</div><div class="v">未识别到预置关键字段，请查看原始 JSON（可在样式中临时显示 .card-raw-json）。</div>';
+        fieldsEl.appendChild(node);
+      }
+    };
+
+    /** 从日历价接口响应中取出 channelPrices 并规范为 [{ channelName, rows }] */
+    const extractChannelPriceGroups = (upstreamBody) => {
+      if (!upstreamBody || typeof upstreamBody !== "object") return [];
+      const dayRows = Array.isArray(upstreamBody.data) ? upstreamBody.data : [];
+      const grouped = new Map();
+
+      // 结构：data[].channelPrices.{渠道名} = { day, price, handlingFee, ... }
+      if (dayRows.length) {
+        dayRows.forEach((dayItem) => {
+          const day = dayItem?.day;
+          const cps = dayItem?.channelPrices;
+          if (!cps || typeof cps !== "object") return;
+          Object.entries(cps).forEach(([channelName, row]) => {
+            if (!grouped.has(channelName)) grouped.set(channelName, []);
+            const rows = grouped.get(channelName);
+            if (row && typeof row === "object") {
+              rows.push({ ...row, day: row.day ?? day });
+            }
+          });
+        });
+        return Array.from(grouped.entries()).map(([channelName, rows]) => ({ channelName, rows }));
+      }
+
+      return [];
+    };
+
+    /** 与 buildOrderMetricsByDay 中日价口径一致（排除基础保障费项来源） */
+    const getOrderFeeDetailPriceMaps = (orderData) => {
+      const feeList = Array.isArray(orderData?.feeList) ? orderData.feeList : [];
+      const dailyPricePreferred = new Map();
+      const dailyPriceFallback = new Map();
+      feeList.forEach((fee) => {
+        const productName = fee?.feeTypeName || "-";
+        const feeType = String(fee?.feeType || "").toLowerCase();
+        if (feeType === "basicinsurance" || String(productName).includes("基础保障服务")) return;
+        const isRent = feeType === "rent" || String(productName).includes("租车");
+        const detailList = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
+        detailList.forEach((detail) => {
+          const day = detail?.date;
+          if (!day) return;
+          const dp = detail?.dailyPrice;
+          if (dp == null || String(dp).trim() === "") return;
+          if (!dailyPriceFallback.has(day)) dailyPriceFallback.set(day, dp);
+          if (isRent && !dailyPricePreferred.has(day)) dailyPricePreferred.set(day, dp);
+        });
+      });
+      return { dailyPricePreferred, dailyPriceFallback };
+    };
+
+    const getOrderFeeDetailDays = (orderData) => {
+      const { dailyPricePreferred, dailyPriceFallback } = getOrderFeeDetailPriceMaps(orderData);
+      return Array.from(new Set([...dailyPricePreferred.keys(), ...dailyPriceFallback.keys()])).sort();
+    };
+
+    /**
+     * 仅当订单状态为「待取车」时展示费用明细各列数值；否则只保留表头与说明行。
+     */
+    const renderFeeDetails = (data) => {
+      if (!feeDetailBodyEl) return;
+      const d = data?.data ?? data;
+      if (!isOrderStatusPendingPickup(d)) {
+        feeDetailBodyEl.innerHTML = '<tr><td colspan="6" class="muted">暂无数据</td></tr>';
+        return;
+      }
+      const feeList = Array.isArray(d?.feeList) ? d.feeList : [];
+      const insuranceByDay = new Map();
+      const commissionByDay = new Map();
+      let globalCommission = "-";
+      const ensureDay = (day) => {
+        if (!insuranceByDay.has(day)) {
+          insuranceByDay.set(day, { base: "-", premium: "-", exclusive: "-" });
+        }
+        return insuranceByDay.get(day);
+      };
+      const markInsurance = (feeType, feeTypeName, day, val) => {
+        const t = String(feeType || "").toLowerCase();
+        const n = String(feeTypeName || "");
+        const target = ensureDay(day);
+        if (t.includes("basicinsurance") || n.includes("基础保障")) {
+          target.base = val;
+        } else if (t.includes("premiuminsurance") || n.includes("优享保障")) {
+          target.premium = val;
+        } else if (t.includes("exclusiveinsurance") || n.includes("尊享保障")) {
+          target.exclusive = val;
+        }
+      };
+      feeList.forEach((fee) => {
+        const feeType = String(fee?.feeType || "").toLowerCase();
+        const feeTypeName = String(fee?.feeTypeName || "");
+        const details = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
+        if (feeType === "storecommission" || feeTypeName.includes("手续费")) {
+          const cVal = fee?.feeAmount;
+          globalCommission = cVal == null || String(cVal).trim() === "" ? "-" : cVal;
+          details.forEach((detail) => {
+            const day = detail?.date;
+            if (!day) return;
+            commissionByDay.set(day, globalCommission);
+          });
+        }
+        details.forEach((detail) => {
+          const day = detail?.date;
+          if (!day) return;
+          markInsurance(fee?.feeType, fee?.feeTypeName, day, detail?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount ?? "-");
+        });
+      });
+
+      const { dailyPricePreferred, dailyPriceFallback } = getOrderFeeDetailPriceMaps(d);
+      const days = Array.from(new Set([...dailyPricePreferred.keys(), ...dailyPriceFallback.keys()])).sort();
+      if (!days.length) {
+        feeDetailBodyEl.innerHTML = '<tr><td colspan="6" class="muted">暂无数据</td></tr>';
+        return;
+      }
+
+      const htmlRows = days.map((day) => {
+        const dailyPrice = dailyPricePreferred.has(day) ? dailyPricePreferred.get(day) : dailyPriceFallback.get(day);
+        const iv = insuranceByDay.get(day) || { base: "-", premium: "-", exclusive: "-" };
+        const commission = commissionByDay.has(day) ? commissionByDay.get(day) : globalCommission;
+        const orderHandlingFee = commission == null || String(commission).trim() === "" ? "-" : commission;
+        return (
+          "<tr>"
+            + "<td>" + escapeHtml(String(day)) + "</td>"
+            + "<td>" + escapeHtml(String(dailyPrice)) + "</td>"
+            + "<td>" + escapeHtml(String(orderHandlingFee)) + "</td>"
+            + "<td>" + escapeHtml(String(iv.base ?? "-")) + "</td>"
+            + "<td>" + escapeHtml(String(iv.premium ?? "-")) + "</td>"
+            + "<td>" + escapeHtml(String(iv.exclusive ?? "-")) + "</td></tr>"
+        );
+      });
+      feeDetailBodyEl.innerHTML = htmlRows.join("");
+    };
+
+    const renderChannelPricesTable = (calJson, options = {}) => {
+      if (!channelPricesTablesEl) return;
+      const upstream = calJson?.upstreamBody;
+      const revenueKey = String(options.highlightChannel || "").trim().toLowerCase();
+      if (!revenueKey) {
+        channelPricesTablesEl.className = "channel-prices-wrap muted";
+        channelPricesTablesEl.textContent = "订单缺少渠道，无法筛选收益明细。";
+        return;
+      }
+      let groups = extractChannelPriceGroups(upstream);
+      if (!groups.length) {
+        channelPricesTablesEl.className = "channel-prices-wrap muted";
+        channelPricesTablesEl.textContent = "未解析到 channelPrices（请对照上方 JSON 调整解析逻辑）。";
+        return;
+      }
+      groups = groups.filter((g) => String(g.channelName || "").trim().toLowerCase() === revenueKey);
+      if (!groups.length) {
+        channelPricesTablesEl.className = "channel-prices-wrap muted";
+        channelPricesTablesEl.textContent =
+          "未找到与订单渠道对应的收益日历价数据（已按映射匹配渠道键：" + revenueKey + "）。";
+        return;
+      }
+
+      const cell = (v) => {
+        if (v == null || String(v).trim() === "") return "-";
+        return escapeHtml(String(v));
+      };
+      const dayMap = new Map();
+      groups.forEach(({ channelName, rows }) => {
+        (rows || []).forEach((row) => {
+          const day = row?.day ?? "";
+          if (!dayMap.has(day)) dayMap.set(day, []);
+          dayMap.get(day).push({ channelName, row });
+        });
+      });
+
+      let orderedDays = Array.from(dayMap.keys()).sort();
+      const feeSet = options.orderData ? new Set(getOrderFeeDetailDays(options.orderData)) : null;
+      if (feeSet && feeSet.size > 0) {
+        orderedDays = orderedDays.filter((day) => feeSet.has(day));
+      }
+      let html = '<div class="table-wrap"><table><thead><tr>';
+      ["日期", "收益日历价", "收益手续费", "收益基础保障", "收益优享保障", "收益尊享保障"].forEach((h) => {
+        html += "<th>" + escapeHtml(h) + "</th>";
+      });
+      html += "</tr></thead><tbody>";
+      if (!orderedDays.length) {
+        html += '<tr><td colspan="6" class="muted">'
+          + (feeSet && feeSet.size > 0 ? "无与订单费用明细日期交集的收益数据" : "无明细")
+          + "</td></tr>";
+      } else {
+        orderedDays.forEach((day) => {
+          const entries = dayMap.get(day) || [];
+          entries.sort((a, b) => String(a.channelName).localeCompare(String(b.channelName)));
+          entries.forEach((entry, idx) => {
+            const r = entry.row || {};
+            html += "<tr>";
+            if (idx === 0) {
+              html += '<td rowspan="' + entries.length + '">' + cell(day) + "</td>";
+            }
+            html += "<td>" + cell(r?.price) + "</td>"
+              + "<td>" + cell(r?.handlingFee) + "</td>"
+              + "<td>" + cell(r?.baseInsurance) + "</td>"
+              + "<td>" + cell(r?.premiumInsurance) + "</td>"
+              + "<td>" + cell(r?.exclusiveInsurance) + "</td>";
+            html += "</tr>";
+          });
+        });
+      }
+      html += "</tbody></table></div>";
+      channelPricesTablesEl.className = "channel-prices-wrap";
+      channelPricesTablesEl.innerHTML = html;
+    };
+
+    const toNum = (v) => {
+      if (v == null || String(v).trim() === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const buildOrderMetricsByDay = (orderData) => {
+      const feeList = Array.isArray(orderData?.feeList) ? orderData.feeList : [];
+      const dailyPricePreferred = new Map();
+      const dailyPriceFallback = new Map();
+      const baseMap = new Map();
+      const premiumMap = new Map();
+      const exclusiveMap = new Map();
+      const commissionMap = new Map();
+      let globalCommission = null;
+      feeList.forEach((fee) => {
+        const feeType = String(fee?.feeType || "").toLowerCase();
+        const feeTypeName = String(fee?.feeTypeName || "");
+        const isRent = String(fee?.feeType || "").toLowerCase() === "rent"
+          || String(fee?.feeTypeName || "").includes("租车");
+        const details = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
+        if (feeType === "storecommission" || feeTypeName.includes("手续费")) {
+          const c = toNum(fee?.feeAmount);
+          if (c != null) globalCommission = c;
+        }
+        details.forEach((d) => {
+          const day = d?.date;
+          if (!day) return;
+          const price = toNum(d?.dailyPrice);
+          if (price != null) {
+            if (!dailyPriceFallback.has(day)) dailyPriceFallback.set(day, price);
+            if (isRent && !dailyPricePreferred.has(day)) dailyPricePreferred.set(day, price);
+          }
+          const t = feeType;
+          const n = feeTypeName;
+          if (t.includes("basicinsurance") || n.includes("基础保障")) {
+            const v = toNum(d?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount);
+            if (v != null && !baseMap.has(day)) baseMap.set(day, v);
+          } else if (t.includes("premiuminsurance") || n.includes("优享保障")) {
+            const v = toNum(d?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount);
+            if (v != null && !premiumMap.has(day)) premiumMap.set(day, v);
+          } else if (t.includes("exclusiveinsurance") || n.includes("尊享保障")) {
+            const v = toNum(d?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount);
+            if (v != null && !exclusiveMap.has(day)) exclusiveMap.set(day, v);
+          } else if ((t === "storecommission" || n.includes("手续费")) && globalCommission != null) {
+            if (!commissionMap.has(day)) commissionMap.set(day, globalCommission);
+          }
+        });
+      });
+      const days = Array.from(new Set([
+        ...dailyPriceFallback.keys(),
+        ...dailyPricePreferred.keys(),
+        ...baseMap.keys(),
+        ...premiumMap.keys(),
+        ...exclusiveMap.keys(),
+        ...commissionMap.keys(),
+      ]));
+      const out = new Map();
+      days.forEach((day) => {
+        out.set(day, {
+          dailyPrice: dailyPricePreferred.has(day) ? dailyPricePreferred.get(day) : dailyPriceFallback.get(day),
+          baseInsurance: baseMap.get(day) ?? null,
+          handlingFee: commissionMap.has(day) ? commissionMap.get(day) : globalCommission,
+          premiumInsurance: premiumMap.get(day) ?? null,
+          exclusiveInsurance: exclusiveMap.get(day) ?? null,
+        });
+      });
+      return out;
+    };
+
+    const buildRevenueMetricsByDay = (calUpstreamBody, revenueChannel) => {
+      const out = new Map();
+      const rows = Array.isArray(calUpstreamBody?.data) ? calUpstreamBody.data : [];
+      rows.forEach((d) => {
+        const day = d?.day;
+        const cp = d?.channelPrices?.[revenueChannel];
+        if (!day) return;
+        out.set(day, {
+          dailyPrice: toNum(cp?.price),
+          baseInsurance: toNum(cp?.baseInsurance),
+          handlingFee: toNum(cp?.handlingFee),
+          premiumInsurance: toNum(cp?.premiumInsurance),
+          exclusiveInsurance: toNum(cp?.exclusiveInsurance),
+        });
+      });
+      return out;
+    };
+
+    const renderPriceCompare = (orderData, calUpstreamBody) => {
+      if (!priceCompareBodyEl) return;
+      const orderChannelRaw = String(orderData?.distributor || "").trim();
+      if (!orderChannelRaw) {
+        priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">订单缺少渠道，无法对比</td></tr>';
+        return;
+      }
+      const orderChannel = orderChannelRaw.toLowerCase();
+      const revenueChannel = CHANNEL_MAP[orderChannel] || orderChannel;
+      const orderMap = buildOrderMetricsByDay(orderData);
+      const revenueMap = buildRevenueMetricsByDay(calUpstreamBody, revenueChannel);
+      const feeDetailDays = getOrderFeeDetailDays(orderData);
+      const days = feeDetailDays.length
+        ? feeDetailDays.filter((day) => orderMap.has(day))
+        : Array.from(orderMap.keys()).sort();
+      const metricDefs = [
+        { key: "dailyPrice", orderLabel: "订单记录日历价", revenueLabel: "收益日历价" },
+        { key: "baseInsurance", orderLabel: "订单基础保障", revenueLabel: "收益基础保障" },
+        { key: "handlingFee", orderLabel: "订单手续费", revenueLabel: "收益手续费" },
+        { key: "premiumInsurance", orderLabel: "订单优享保障", revenueLabel: "收益优享保障" },
+        { key: "exclusiveInsurance", orderLabel: "订单尊享保障", revenueLabel: "收益尊享保障" },
+      ];
+      const shownMetrics = metricDefs.filter((m) =>
+        days.some((day) => {
+          const ov = orderMap.get(day)?.[m.key];
+          return ov != null;
+        })
+      );
+      const staticCols = 1;
+      const totalCols = staticCols + shownMetrics.length * 2;
+      if (priceCompareHeadEl) {
+        let hh = "<tr>"
+          + "<th rowspan=\"2\">对比日期</th>";
+        shownMetrics.forEach((m) => {
+          const groupName = m.orderLabel.replace(/^订单/, "");
+          hh += "<th class=\"cmp-group-head\" colspan=\"2\">" + escapeHtml(groupName) + "</th>";
+        });
+        hh += "</tr><tr>";
+        shownMetrics.forEach(() => {
+          hh += "<th>订单</th><th>收益</th>";
+        });
+        hh += "</tr>";
+        priceCompareHeadEl.innerHTML = hh;
+      }
+      if (!days.length) {
+        priceCompareBodyEl.innerHTML = '<tr><td colspan="' + totalCols + '" class="muted">无可对比价格数据</td></tr>';
+        return;
+      }
+      const rows = days.map((day) => {
+        const o = orderMap.get(day) || {};
+        const r = revenueMap.get(day) || {};
+        let tr = "<tr>"
+          + "<td>" + escapeHtml(day) + "</td>";
+        shownMetrics.forEach((m) => {
+          const ov = o[m.key];
+          const rv = r[m.key];
+          const hasBoth = ov != null && rv != null;
+          const same = hasBoth && Math.abs(ov - rv) < 1e-9;
+          const cls = same ? "cmp-ok" : "cmp-bad";
+          tr += "<td class=\"" + cls + " cmp-pair-left\">" + escapeHtml(ov == null ? "-" : String(ov)) + "</td>";
+          tr += "<td class=\"" + cls + " cmp-pair-right\">" + escapeHtml(rv == null ? "-" : String(rv)) + "</td>";
+        });
+        tr += "</tr>";
+        return tr;
+      }).join("");
+      priceCompareBodyEl.innerHTML = rows;
+    };
+
+    queryBtn.addEventListener("click", async () => {
+      const proxyUrl = $("proxyUrl").value.trim();
+      const endpoints = getActiveEndpoints();
+      const envLabel = endpoints.label;
+      const targetUrl = endpoints.orderDetail;
+      const cookie = $("cookie").value.trim();
+      const orderNo = $("orderNo").value.trim();
+      const requestMethod = DEFAULT_ORDER_REQUEST_METHOD;
+
+      if (!proxyUrl || !cookie || !orderNo) {
+        setStatus("请填写 Cookie 和订单号（本地代理使用页面内置默认地址）。", false);
+        return;
+      }
+
+      queryBtn.disabled = true;
+      statusEl.className = "status";
+      statusEl.textContent = "查询中...";
+      fieldsEl.innerHTML = "";
+      const feeBadgeEl = $("feeDetailChannelBadge");
+      const revBadgeEl = $("revenueChannelBadge");
+      if (feeBadgeEl) feeBadgeEl.textContent = "";
+      if (revBadgeEl) revBadgeEl.textContent = "";
+      clearFeePendingHint();
+      feeDetailBodyEl.innerHTML = '<tr><td colspan="6" class="muted">加载中...</td></tr>';
+      calendarPriceOut.textContent = "{}";
+      channelPricesTablesEl.className = "channel-prices-wrap muted";
+      channelPricesTablesEl.textContent = "暂无数据";
+      priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">暂无数据</td></tr>';
+      // channelPriceOut.textContent = "{}"; // 渠道价格模块已注释
+      jsonOut.textContent = "{}";
+
+      try {
+        const bodyObj = { cookie, orderNo, targetUrl, requestMethod };
+        const resp = await fetch(proxyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bodyObj)
+        });
+        const body = await resp.json();
+        jsonOut.textContent = JSON.stringify(body, null, 2);
+        if (!resp.ok || body.success !== true) {
+          setStatus("代理请求失败：" + (body.message || "未知错误"), false);
+          return;
+        }
+
+        const upstream = body.upstreamBody;
+        const orderData = upstream?.data ?? upstream;
+        let modelIdFromCar = undefined;
+        let carSpuHint = "";
+        let calendarHint = "";
+        let followUpHint = "";
+
+        const allowFollowUp = isOrderStatusPendingPickup(orderData);
+        if (allowFollowUp) {
+          const billingForCar = pick(orderData, "billingSpuId");
+          if (billingForCar != null && String(billingForCar).trim() !== "") {
+            try {
+              let carSpuUrl;
+              try {
+                carSpuUrl = new URL(proxyUrl).origin + "/api/car-spu-list";
+              } catch (_) {
+                carSpuHint = "本地代理地址不是合法 URL，无法推导车型 list 代理";
+                carSpuUrl = null;
+              }
+              if (carSpuUrl) {
+                const carPayload = {
+                  cookie,
+                  billingSpuId: String(billingForCar).trim(),
+                  targetUrl: endpoints.carSpuList
+                };
+                const carResp = await fetch(carSpuUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(carPayload)
+                });
+                const carJson = await carResp.json();
+                if (carJson.success === true && carJson.extractedModelId != null && String(carJson.extractedModelId).trim() !== "") {
+                  modelIdFromCar = carJson.extractedModelId;
+                } else if (carJson.message) {
+                  carSpuHint = "车型 list：" + carJson.message;
+                }
+              }
+            } catch (_) {
+              carSpuHint = "车型 list 请求异常";
+            }
+          }
+
+          const pickupExpectedYmd = parseCreateDateYmd(pick(orderData, "pickupExpectedTime"));
+          const returnExpectedYmd = parseCreateDateYmd(pick(orderData, "returnExpectedTime"));
+          const storeForCal = pick(orderData, "pickupStoreCode");
+          let calOrigin = null;
+          try {
+            calOrigin = new URL(proxyUrl).origin;
+          } catch (_) {
+            calendarHint = "本地代理地址不是合法 URL，无法请求日历价";
+          }
+          if (!calendarHint && calOrigin && pickupExpectedYmd && returnExpectedYmd && modelIdFromCar != null && String(modelIdFromCar).trim() !== "" && storeForCal != null && String(storeForCal).trim() !== "") {
+            try {
+              const calPayload = {
+                cookie,
+                startDate: pickupExpectedYmd,
+                endDate: returnExpectedYmd,
+                carModelId: String(modelIdFromCar).trim(),
+                storeCode: String(storeForCal).trim(),
+                licenseType: 0,
+                targetUrl: endpoints.calendarPrices
+              };
+              const calResp = await fetch(calOrigin + "/api/load-channel-calendar-prices", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(calPayload)
+              });
+              const calJson = await calResp.json();
+              calendarPriceOut.textContent = JSON.stringify(calJson, null, 2);
+              if (calJson.success === true) {
+                const orderChannel = String(orderData?.distributor || "").toLowerCase();
+                const mappedRevenueChannel = CHANNEL_MAP[orderChannel] || orderChannel;
+                renderChannelPricesTable(calJson, { highlightChannel: mappedRevenueChannel, orderData });
+                renderPriceCompare(orderData, calJson?.upstreamBody);
+              } else {
+                channelPricesTablesEl.className = "channel-prices-wrap muted";
+                channelPricesTablesEl.textContent = "暂无数据";
+                priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">收益价格查询失败，无法对比</td></tr>';
+              }
+              if (calJson.success !== true && calJson.message) {
+                calendarHint = "日历价：" + calJson.message;
+              }
+            } catch (_) {
+              calendarHint = "日历价请求异常";
+              channelPricesTablesEl.className = "channel-prices-wrap muted";
+              channelPricesTablesEl.textContent = "暂无数据";
+            }
+          } else if (!calendarHint && (modelIdFromCar == null || String(modelIdFromCar).trim() === "")) {
+            /* 无车型 id 时不请求 */
+          } else if (!calendarHint && !pickupExpectedYmd) {
+            calendarHint = "预计取车时间无法解析为日期，未请求日历价";
+          } else if (!calendarHint && !returnExpectedYmd) {
+            calendarHint = "预计还车时间无法解析为日期，未请求日历价";
+          } else if (!calendarHint && (storeForCal == null || String(storeForCal).trim() === "")) {
+            calendarHint = "缺少取车门店编码，未请求日历价";
+          }
+        } else {
+          const os = Number(pick(orderData, "orderStatus"));
+          const ost = ORDER_STATUS_MAP[Number.isFinite(os) ? os : NaN] ?? pick(orderData, "statusName") ?? pick(orderData, "orderStatus") ?? "未知";
+          followUpHint = "已跳过车型 list、日历价与收益对比（非待取车）";
+          calendarPriceOut.textContent = "{}";
+          channelPricesTablesEl.className = "channel-prices-wrap muted";
+          channelPricesTablesEl.textContent = "仅待取车订单会请求收益数据";
+          priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">仅待取车订单进行价格对比</td></tr>';
+        }
+
+        renderFields(upstream, { modelId: modelIdFromCar });
+        renderFeeDetails(upstream);
+        if (isOrderStatusPendingPickup(orderData)) {
+          clearFeePendingHint();
+        } else {
+          showFeePendingHint();
+        }
+        syncSectionChannelBadges(orderData);
+
+        /*
+        门店编码 pickupStoreCode + billingSpuId → POST queryBatchChannelPrice
+        入参：{ storeCode, hatchbackCode }（已注释）
+        const orderData = upstream?.data ?? upstream;
+        const pickupStore = orderData?.pickupStoreCode;
+        const billingSpu = orderData?.billingSpuId;
+        if (pickupStore && billingSpu) {
+          try {
+            const channelBody = {
+              cookie,
+              storeCode: String(pickupStore).trim(),
+              hatchbackCode: String(billingSpu).trim(),
+              targetUrl: $("channelPriceTargetUrl").value.trim()
+            };
+            if (extraHeaders) channelBody.extraHeaders = extraHeaders;
+            const cResp = await fetch($("channelPriceProxyUrl").value.trim(), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(channelBody)
+            });
+            const cJson = await cResp.json();
+            channelPriceOut.textContent = JSON.stringify(cJson, null, 2);
+          } catch (ce) {
+            channelPriceOut.textContent = JSON.stringify(
+              { success: false, message: "渠道价格请求异常：" + (ce?.message || String(ce)) },
+              null,
+              2
+            );
+          }
+        } else {
+          channelPriceOut.textContent = JSON.stringify(
+            {
+              success: false,
+              message: "未自动请求渠道价格：订单详情中缺少 pickupStoreCode 或 billingSpuId",
+              pickupStoreCode: pickupStore ?? null,
+              billingSpuId: billingSpu ?? null
+            },
+            null,
+            2
+          );
+        }
+        */
+
+        const msg = upstream?.msg || upstream?.message || "";
+        const us = body.upstreamStatus;
+        const upstream403 = Number(us) === 403;
+        setStatus(
+          "查询完成（环境：" + envLabel + "）。上游状态码：" + us + "，方法：" + (body.resolvedMethod || requestMethod) + (msg ? "，" + msg : "") + (followUpHint ? "；" + followUpHint : "") + (carSpuHint ? "；" + carSpuHint : "") + (calendarHint ? "；" + calendarHint : "") + (upstream403 ? "（403 多为 Cookie 过期、缺鉴权头或网关拦截，请更新 Cookie）" : ""),
+          !upstream403
+        );
+      } catch (e) {
+        setStatus("请求异常：" + (e?.message || String(e)), false);
+      } finally {
+        queryBtn.disabled = false;
+      }
+    });
+
+    initRuntimeEnvUI();
+  </script>
+</body>
+</html>
