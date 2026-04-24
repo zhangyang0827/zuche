@@ -10,6 +10,9 @@ from urllib.error import URLError, HTTPError
 HOST = "127.0.0.1"
 PORT = 8787
 TARGET_URL = "http://ibd-travel.17u.cn/gateway/mdscr-order/manage/order/detail/"
+ORDER_LIST_URL_DEFAULT = (
+    "http://ibd-travel.17u.cn/gateway/mdscr-order/manage/order/queryOrderList"
+)
 CAR_SPU_LIST_URL_DEFAULT = (
     "http://ibd-travel.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list"
 )
@@ -43,11 +46,11 @@ def normalize_target_url(target_url: str) -> str:
     return urlunparse((p.scheme, p.netloc, path, p.params, p.query, p.fragment))
 
 
-def extract_model_id_for_spu(obj, billing_spu_id: str):
-    """从 carSpu/list 类响应中解析与 billingSpuId 对应的 modelId。"""
+def extract_car_spu_fields(obj, billing_spu_id: str):
+    """从 carSpu/list 类响应中解析与 billingSpuId 对应的车型字段。"""
     bid = str(billing_spu_id).strip()
     if not bid:
-        return None
+        return {"modelId": None, "licenseType": None}
 
     def match_spu(d: dict) -> bool:
         if not isinstance(d, dict):
@@ -60,8 +63,11 @@ def extract_model_id_for_spu(obj, billing_spu_id: str):
 
     def walk(o):
         if isinstance(o, dict):
-            if match_spu(o) and o.get("modelId") is not None:
-                return o.get("modelId")
+            if match_spu(o):
+                model_id = o.get("modelId")
+                license_type = o.get("licenseType")
+                if model_id is not None or license_type is not None:
+                    return {"modelId": model_id, "licenseType": license_type}
             for v in o.values():
                 r = walk(v)
                 if r is not None:
@@ -80,10 +86,33 @@ def extract_model_id_for_spu(obj, billing_spu_id: str):
     if isinstance(obj, dict):
         data = obj.get("data")
         if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
-            mid = data[0].get("modelId")
-            if mid is not None:
-                return mid
-    return None
+            return {
+                "modelId": data[0].get("modelId"),
+                "licenseType": data[0].get("licenseType"),
+            }
+    return {"modelId": None, "licenseType": None}
+
+
+def extract_order_no(obj):
+    """从订单列表响应中尽量提取一个可用 orderNo。"""
+    def walk(o):
+        if isinstance(o, dict):
+            for k in ("orderNo", "orderNO", "order_no"):
+                v = o.get(k)
+                if v is not None and str(v).strip():
+                    return str(v).strip()
+            for v in o.values():
+                r = walk(v)
+                if r is not None:
+                    return r
+        elif isinstance(o, list):
+            for it in o:
+                r = walk(it)
+                if r is not None:
+                    return r
+        return None
+
+    return walk(obj)
 
 
 def build_get_url(target_url: str, order_no: str) -> str:
@@ -136,6 +165,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path not in (
             "/api/order-detail",
+            "/api/order-list",
             "/api/car-spu-list",
             "/api/load-channel-calendar-prices",
         ):
@@ -148,6 +178,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return json_response(self, 400, {"success": False, "message": "请求体必须是 JSON"})
 
+        if self.path == "/api/order-list":
+            return self._handle_order_list(payload)
         if self.path == "/api/car-spu-list":
             return self._handle_car_spu_list(payload)
         if self.path == "/api/load-channel-calendar-prices":
@@ -234,6 +266,104 @@ class ProxyHandler(BaseHTTPRequestHandler):
             },
         )
 
+    def _handle_order_list(self, payload: dict):
+        cookie = (payload.get("cookie") or "").strip()
+        target_url = normalize_target_url((payload.get("targetUrl") or ORDER_LIST_URL_DEFAULT).strip())
+        extra = payload.get("extraHeaders")
+        list_body = payload.get("listBody")
+
+        if extra is not None and not isinstance(extra, dict):
+            return json_response(self, 400, {"success": False, "message": "extraHeaders 必须是对象（键值均为字符串）"})
+        if list_body is not None and not isinstance(list_body, dict):
+            return json_response(self, 400, {"success": False, "message": "listBody 必须是对象"})
+        if not cookie:
+            return json_response(self, 400, {"success": False, "message": "cookie 不能为空"})
+
+        default_list_body = {
+            "pageNum": 1,
+            "pageSize": 10,
+            "tabIndex": 0,
+            "desensitization": True,
+            "param": {
+                "includeOrderStatus": [2],
+                "sortType": 0,
+                "sortMode": 0,
+                "excludeBusinessTypes": [1],
+            },
+            "traceId": str(uuid.uuid4()),
+        }
+        if isinstance(list_body, dict) and list_body:
+            body_obj = {**default_list_body, **list_body}
+        else:
+            body_obj = dict(default_list_body)
+        if not isinstance(body_obj.get("param"), dict):
+            body_obj["param"] = dict(default_list_body["param"])
+        else:
+            body_obj["param"] = {**default_list_body["param"], **body_obj["param"]}
+        body_obj["param"]["includeOrderStatus"] = [2]
+        if not str(body_obj.get("traceId") or "").strip():
+            body_obj["traceId"] = str(uuid.uuid4())
+
+        origin, referer = origin_and_referer(target_url)
+        upstream_headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/plain, */*",
+            "Cookie": cookie,
+            "User-Agent": UA_CHROME,
+            "Origin": origin,
+            "Referer": referer,
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }
+        if isinstance(extra, dict):
+            for k, v in extra.items():
+                if k is None or v is None:
+                    continue
+                key = str(k).strip()
+                if not key:
+                    continue
+                upstream_headers[key] = str(v)
+
+        upstream_payload = json.dumps(body_obj, ensure_ascii=False).encode("utf-8")
+        req = Request(target_url, data=upstream_payload, headers=upstream_headers, method="POST")
+
+        try:
+            with urlopen(req, timeout=15) as resp:
+                text = resp.read().decode("utf-8", errors="replace")
+                status = resp.getcode()
+        except HTTPError as e:
+            text = e.read().decode("utf-8", errors="replace")
+            status = e.code
+        except URLError as e:
+            return json_response(
+                self, 502, {"success": False, "message": f"上游请求失败: {e.reason}", "data": None}
+            )
+        except Exception as e:
+            return json_response(
+                self, 500, {"success": False, "message": f"代理异常: {str(e)}", "data": None}
+            )
+
+        try:
+            upstream_body = json.loads(text)
+        except json.JSONDecodeError:
+            upstream_body = {"nonJsonResponse": text}
+
+        extracted_order_no = extract_order_no(upstream_body)
+
+        return json_response(
+            self,
+            200,
+            {
+                "success": True,
+                "message": "ok",
+                "resolvedTargetUrl": target_url,
+                "resolvedMethod": "POST",
+                "requestBody": body_obj,
+                "upstreamStatus": status,
+                "upstreamBody": upstream_body,
+                "extractedOrderNo": extracted_order_no,
+            },
+        )
+
     def _handle_car_spu_list(self, payload: dict):
         cookie = (payload.get("cookie") or "").strip()
         billing_spu_id = (payload.get("billingSpuId") or "").strip()
@@ -310,7 +440,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             upstream_body = {"nonJsonResponse": text}
 
-        model_id = extract_model_id_for_spu(upstream_body, billing_spu_id)
+        extracted_fields = extract_car_spu_fields(upstream_body, billing_spu_id)
 
         return json_response(
             self,
@@ -323,7 +453,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 "requestBody": body_obj,
                 "upstreamStatus": status,
                 "upstreamBody": upstream_body,
-                "extractedModelId": model_id,
+                "extractedModelId": extracted_fields.get("modelId"),
+                "extractedLicenseType": extracted_fields.get("licenseType"),
             },
         )
 
@@ -333,6 +464,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         end_date = (payload.get("endDate") or "").strip()
         car_model_id = payload.get("carModelId")
         store_code = (payload.get("storeCode") or "").strip()
+        # licenseType 枚举：0 普牌，1 京牌，2 粤A，3 粤B，4 沪牌，5 浙A，6 津
+        license_type = payload.get("licenseType")
         target_url = normalize_target_url((payload.get("targetUrl") or CALENDAR_PRICES_URL_DEFAULT).strip())
         extra = payload.get("extraHeaders")
 
@@ -346,13 +479,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
             return json_response(self, 400, {"success": False, "message": "carModelId 不能为空"})
         if not store_code:
             return json_response(self, 400, {"success": False, "message": "storeCode 不能为空"})
+        if license_type is None or str(license_type).strip() == "":
+            return json_response(self, 400, {"success": False, "message": "licenseType 不能为空"})
 
         body_obj = {
             "startDate": start_date,
             "endDate": end_date,
             "carModelId": str(car_model_id).strip(),
             "storeCode": store_code,
-            "licenseType": 0,
+            "licenseType": license_type,
         }
 
         origin, referer = origin_and_referer(target_url)
@@ -494,6 +629,7 @@ if __name__ == "__main__":
     print(f"Proxy server listening at http://{HOST}:{PORT}")
     print("GET  /           (页面)")
     print("POST /api/order-detail")
+    print("POST /api/order-list")
     print("POST /api/car-spu-list")
     print("POST /api/load-channel-calendar-prices")
     # print("POST /api/channel-price-limit")

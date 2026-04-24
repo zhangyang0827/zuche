@@ -195,22 +195,22 @@
 
     .kv {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 8px;
     }
     .item {
       border: 1px solid var(--border);
       background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
+      border-radius: 8px;
+      padding: 9px 10px;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .item:hover {
       border-color: #cbd5e1;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     }
-    .k { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
-    .v { font-size: 14px; word-break: break-word; color: var(--text); }
+    .k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 4px; }
+    .v { font-size: 13px; line-height: 1.35; word-break: break-word; color: var(--text); }
     .v-missing { color: var(--danger); font-weight: 600; }
 
     .table-wrap {
@@ -255,6 +255,109 @@
       color: var(--danger);
       background: var(--danger-bg);
       border: 1px solid rgba(220, 38, 38, 0.28);
+    }
+    #batchResults .card { margin-bottom: 14px; }
+    .order-group {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      overflow: hidden;
+    }
+    .order-group summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      padding-right: 38px;
+    }
+    .order-group summary::after {
+      content: "▸";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%) rotate(0deg);
+      transform-origin: center;
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1;
+      transition: transform 0.18s ease, color 0.18s ease;
+    }
+    .order-group details[open] > summary::after {
+      transform: translateY(-50%) rotate(90deg);
+      color: var(--accent);
+    }
+    .order-group.has-diff summary {
+      color: var(--danger);
+      background: #fff1f2;
+      border-bottom-color: rgba(220, 38, 38, 0.35);
+    }
+    .order-group.has-diff .order-summary-sub {
+      color: #b91c1c;
+    }
+    .order-group summary::-webkit-details-marker { display: none; }
+    .order-group .order-summary-sub {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .order-group .order-summary-main {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .copy-order-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      line-height: 1.4;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+      box-shadow: none;
+    }
+    .copy-order-btn:hover {
+      color: var(--accent);
+      border-color: #c7d2fe;
+      background: #eef2ff;
+      filter: none;
+      box-shadow: none;
+      transform: none;
+    }
+    .order-group-body {
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+    .order-no-list-card .order-no-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .order-no-list-card .order-no-chip {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.3;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text-secondary);
+    }
+    .order-no-list-card.diff .order-no-chip {
+      color: #b91c1c;
+      background: #fff1f2;
+      border-color: rgba(220, 38, 38, 0.32);
     }
 
     .channel-prices-wrap {
@@ -424,8 +527,8 @@
       <label for="cookie">Cookie</label>
       <textarea id="cookie" placeholder="粘贴完整 Cookie"></textarea>
 
-      <label for="orderNo">订单号</label>
-      <input id="orderNo" placeholder="请输入订单号" />
+      <label for="orderNo">单个订单号（可选）</label>
+      <input id="orderNo" placeholder="请输入单个订单号；若留空则走订单列表批量查询" />
 
       <!--
       门店编码 pickupStoreCode + billingSpuId → queryBatchChannelPrice（已注释）
@@ -442,7 +545,12 @@
 
     <div id="feePendingHint" class="fee-pending-hint" role="status" hidden></div>
 
-    <div class="card">
+    <div id="diffOrderNoListPanel" class="card order-no-list-card diff ui-hidden" hidden>
+      <h3>比对不一致订单号</h3>
+      <div id="diffOrderNoList" class="order-no-list"></div>
+    </div>
+
+    <div id="singleResultPanel" class="card ui-hidden" hidden>
       <h3>关键字段</h3>
       <div id="fields" class="kv"></div>
     </div>
@@ -456,13 +564,13 @@
     </div>
     -->
 
-    <div class="card card-calendar-json">
-      <h3>渠道日历价（loadChannelAllCalendarPrices）</h3>
-      <div class="hint"><code>startDate</code> / <code>endDate</code> 均取订单 <code>createTime</code> 的日期；入参还含 <code>carModelId</code>（车型 id）、<code>storeCode</code>（取车门店编码）；<code>licenseType</code> 固定为 <code>0</code>。</div>
+    <div class="card card-calendar-json ui-hidden" hidden>
+      <h3>收益接口返回 JSON</h3>
+      <div class="hint"><code>startDate</code> / <code>endDate</code> 均取订单 <code>createTime</code> 的日期；入参还含 <code>carModelId</code>（车型 id）、<code>storeCode</code>（取车门店编码）；<code>licenseType</code> 必须取车辆接口返回值，缺失则停止收益查询。</div>
       <pre id="calendarPriceOut">{}</pre>
     </div>
 
-    <div class="card">
+    <div id="legacySingleModules" class="card ui-hidden" hidden>
       <h3>订单费用明细<span id="feeDetailChannelBadge" class="title-channel"></span></h3>
       <div class="table-wrap">
         <table>
@@ -500,6 +608,8 @@
       </div>
     </div>
 
+    <div id="batchResults"></div>
+
     <div class="card card-raw-json">
       <h3>原始响应 JSON</h3>
       <pre id="jsonOut">{}</pre>
@@ -512,10 +622,16 @@
     const fieldsEl = $("fields");
     const feeDetailBodyEl = $("feeDetailBody");
     const feePendingHintEl = $("feePendingHint");
-    const calendarPriceOut = $("calendarPriceOut");
     const channelPricesTablesEl = $("channelPricesTables");
     const priceCompareHeadEl = $("priceCompareHead");
     const priceCompareBodyEl = $("priceCompareBody");
+    const batchResultsEl = $("batchResults");
+    const diffOrderNoListPanelEl = $("diffOrderNoListPanel");
+    const diffOrderNoListEl = $("diffOrderNoList");
+    const cumulativeDiffOrderNoSet = new Set();
+    const queriedOrderNoHistory = new Set();
+    let autoQueryTimerId = null;
+    let isQueryingBatch = false;
     // const channelPriceOut = $("channelPriceOut"); // 渠道价格模块已注释
     const jsonOut = $("jsonOut");
     const queryBtn = $("queryBtn");
@@ -527,18 +643,21 @@
     const ENV_ENDPOINTS = {
       uat: {
         label: "UAT",
+        orderList: "http://ibd-travel.uat.17u.cn/gateway/mdscr-order/manage/order/queryOrderList",
         orderDetail: "http://ibd-travel.uat.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
         carSpuList: "http://ibd-travel.uat.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
         calendarPrices: "http://mdscr.travel.uat.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
       },
       pre: {
         label: "预发",
+        orderList: "http://ibd-travel.t.17u.cn/gateway/mdscr-order/manage/order/queryOrderList",
         orderDetail: "http://ibd-travel.t.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
         carSpuList: "http://ibd-travel.t.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
         calendarPrices: "http://mdscr.travel.t.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
       },
       prod: {
         label: "生产",
+        orderList: "http://ibd-travel.17u.cn/gateway/mdscr-order/manage/order/queryOrderList",
         orderDetail: "http://ibd-travel.17u.cn/gateway/mdscr-order/manage/order/detail/{orderNo}?desensitization=true&newFeeDisplay=true",
         carSpuList: "http://ibd-travel.17u.cn/gateway/mdscr-vehicle/manage/channel/carSpu/list",
         calendarPrices: "http://mdscr.travel.17usoft.com/revenueapi/dispatch/price/loadChannelAllCalendarPrices",
@@ -609,6 +728,64 @@
       statusEl.className = "status " + (ok ? "ok" : "err");
     };
 
+    const renderDiffOrderNos = (orderNos) => {
+      if (!diffOrderNoListPanelEl || !diffOrderNoListEl) return;
+      if (!Array.isArray(orderNos) || !orderNos.length) {
+        diffOrderNoListPanelEl.hidden = true;
+        diffOrderNoListPanelEl.classList.add("ui-hidden");
+        diffOrderNoListEl.innerHTML = "";
+        return;
+      }
+      diffOrderNoListPanelEl.hidden = false;
+      diffOrderNoListPanelEl.classList.remove("ui-hidden");
+      diffOrderNoListEl.innerHTML = orderNos.map((no) =>
+        '<span class="order-no-chip">' + escapeHtml(String(no)) + "</span>"
+      ).join("");
+    };
+
+    const makeTraceId = () => {
+      if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+      }
+      return "trace-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    };
+
+    const buildOrderListBody = () => ({
+      pageNum: 1,
+      pageSize: 10,
+      tabIndex: 0,
+      desensitization: true,
+      param: {
+        includeOrderStatus: [2], // 按需求写死待取车
+        sortType: 0,
+        sortMode: 0,
+        excludeBusinessTypes: [1],
+      },
+      traceId: makeTraceId(),
+    });
+
+    const extractOrderNoFromListBody = (upstreamBody) => {
+      const walk = (o) => {
+        if (Array.isArray(o)) {
+          for (const it of o) {
+            const r = walk(it);
+            if (r) return r;
+          }
+          return "";
+        }
+        if (o && typeof o === "object") {
+          const direct = o.orderNo ?? o.orderNO ?? o.order_no;
+          if (direct != null && String(direct).trim() !== "") return String(direct).trim();
+          for (const v of Object.values(o)) {
+            const r = walk(v);
+            if (r) return r;
+          }
+        }
+        return "";
+      };
+      return walk(upstreamBody) || "";
+    };
+
     /** 接口字段进 DOM 前转义，避免 XSS（仍用 innerHTML 拼结构） */
     const escapeHtml = (s) => String(s)
       .replace(/&/g, "&amp;")
@@ -674,6 +851,7 @@
         { k: "订单渠道", v: distributorText },
         { k: "取车门店编码", v: storeCode },
         { k: "取车门店名称", v: storeName },
+        { k: "订单创建时间", v: pick(d, "createTime") ?? pick(d, "create_time") ?? pick(d, "orderCreateTime") },
         { k: "预计取车时间", v: pick(d, "pickupExpectedTime") },
         { k: "预计还车时间", v: pick(d, "returnExpectedTime") },
         { k: "计费车型 ID", v: billingSpuId, alwaysShow: true, missingRed: true },
@@ -793,7 +971,7 @@
         const feeType = String(fee?.feeType || "").toLowerCase();
         const feeTypeName = String(fee?.feeTypeName || "");
         const details = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
-        if (feeType === "storecommission" || feeTypeName.includes("手续费")) {
+        if (feeType === "storecommission") {
           const cVal = fee?.feeAmount;
           globalCommission = cVal == null || String(cVal).trim() === "" ? "-" : cVal;
           details.forEach((detail) => {
@@ -929,7 +1107,7 @@
         const isRent = String(fee?.feeType || "").toLowerCase() === "rent"
           || String(fee?.feeTypeName || "").includes("租车");
         const details = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
-        if (feeType === "storecommission" || feeTypeName.includes("手续费")) {
+        if (feeType === "storecommission") {
           const c = toNum(fee?.feeAmount);
           if (c != null) globalCommission = c;
         }
@@ -952,7 +1130,7 @@
           } else if (t.includes("exclusiveinsurance") || n.includes("尊享保障")) {
             const v = toNum(d?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount);
             if (v != null && !exclusiveMap.has(day)) exclusiveMap.set(day, v);
-          } else if ((t === "storecommission" || n.includes("手续费")) && globalCommission != null) {
+          } else if (t === "storecommission" && globalCommission != null) {
             if (!commissionMap.has(day)) commissionMap.set(day, globalCommission);
           }
         });
@@ -1064,222 +1242,459 @@
       priceCompareBodyEl.innerHTML = rows;
     };
 
-    queryBtn.addEventListener("click", async () => {
+    const extractOrderNoListFromListBody = (upstreamBody) => {
+      const seen = new Set();
+      const out = [];
+      const walk = (o) => {
+        if (Array.isArray(o)) {
+          o.forEach(walk);
+          return;
+        }
+        if (!o || typeof o !== "object") return;
+        const v = o.orderNo ?? o.orderNO ?? o.order_no;
+        if (v != null && String(v).trim() !== "") {
+          const s = String(v).trim();
+          if (!seen.has(s)) {
+            seen.add(s);
+            out.push(s);
+          }
+        }
+        Object.values(o).forEach(walk);
+      };
+      walk(upstreamBody);
+      return out;
+    };
+
+    const uniqueOrderNos = (orderNos) => {
+      const seen = new Set();
+      const out = [];
+      (orderNos || []).forEach((no) => {
+        const s = String(no || "").trim();
+        if (!s || seen.has(s)) return;
+        seen.add(s);
+        out.push(s);
+      });
+      return out;
+    };
+
+    const buildOrderGroupCard = (orderNo, index, total) => {
+      const card = document.createElement("div");
+      card.className = "card order-group";
+      card.innerHTML =
+        "<details>"
+        + "<summary><span class=\"order-summary-main\">订单号：" + escapeHtml(orderNo) + "<button type=\"button\" class=\"copy-order-btn\" data-order-no=\"" + escapeHtml(orderNo) + "\">复制</button></span><span class=\"order-summary-sub\">第 " + (index + 1) + " / " + total + " 条</span></summary>"
+        + "<div class=\"order-group-body\">"
+        +   "<div class=\"fee-pending-hint\" data-role=\"pending-hint\" hidden></div>"
+        +   "<div><h3>关键字段</h3><div class=\"kv\" data-role=\"fields\"></div></div>"
+        +   "<div><h3>订单费用明细<span class=\"title-channel\" data-role=\"fee-badge\"></span></h3><div class=\"table-wrap\"><table><thead><tr><th>订单日期</th><th>订单记录日历价</th><th>订单手续费</th><th>订单基础保障</th><th>订单优享保障</th><th>订单尊享保障</th></tr></thead><tbody data-role=\"fee-body\"><tr><td colspan=\"6\" class=\"muted\">加载中...</td></tr></tbody></table></div></div>"
+        +   "<div><h3>收益价格明细<span class=\"title-channel\" data-role=\"rev-badge\"></span></h3><div class=\"channel-prices-wrap muted\" data-role=\"revenue\">暂无数据</div></div>"
+        +   "<div><h3>价格对比结果</h3><div class=\"table-wrap\"><table><thead data-role=\"cmp-head\"><tr><th>对比日期</th><th>订单记录日历价</th><th>收益日历价</th></tr></thead><tbody data-role=\"cmp-body\"><tr><td colspan=\"20\" class=\"muted\">暂无数据</td></tr></tbody></table></div></div>"
+        + "</div></details>";
+      return card;
+    };
+
+    const renderFieldsTo = (fieldsTarget, data, options = {}) => {
+      const d = data?.data ?? data;
+      const billingSpuId = pick(d, "billingSpuId");
+      const modelId = options.modelId;
+      const orderStatusRaw = pick(d, "orderStatus");
+      const orderStatusText = ORDER_STATUS_MAP[Number(orderStatusRaw)] ?? pick(d, "statusName") ?? pick(d, "status") ?? orderStatusRaw;
+      const distributorRaw = pick(d, "distributor");
+      const distributorText = distributorRaw == null || String(distributorRaw).trim() === ""
+        ? undefined
+        : String(distributorRaw);
+      const storeCode = pick(d, "pickupStoreCode");
+      const storeName = pick(d, "pickupStoreName");
+      const rows = [
+        { k: "订单号", v: pick(d, "orderNo") ?? pick(d, "order_no") },
+        { k: "订单渠道", v: distributorText },
+        { k: "取车门店编码", v: storeCode },
+        { k: "取车门店名称", v: storeName },
+        { k: "订单创建时间", v: pick(d, "createTime") ?? pick(d, "create_time") ?? pick(d, "orderCreateTime") },
+        { k: "预计取车时间", v: pick(d, "pickupExpectedTime") },
+        { k: "预计还车时间", v: pick(d, "returnExpectedTime") },
+        { k: "计费车型 ID", v: billingSpuId, alwaysShow: true, missingRed: true },
+        { k: "车型 id", v: modelId },
+        { k: "订单状态", v: orderStatusText },
+      ];
+      fieldsTarget.innerHTML = "";
+      rows.forEach((row) => {
+        const isMissing = row.v == null || String(row.v).trim() === "";
+        if (isMissing && !row.alwaysShow) return;
+        const node = document.createElement("div");
+        node.className = "item" + (row.k === "订单渠道" && !isMissing ? " channel-key-highlight" : "");
+        const valueClass = "v" + ((isMissing && row.missingRed) ? " v-missing" : "");
+        node.innerHTML = '<div class="k">' + escapeHtml(row.k) + '</div><div class="' + valueClass + '">' + (isMissing ? "" : escapeHtml(String(row.v))) + '</div>';
+        fieldsTarget.appendChild(node);
+      });
+    };
+
+    const renderFeeDetailsTo = (feeBodyEl, orderData) => {
+      const d = orderData?.data ?? orderData;
+      if (!isOrderStatusPendingPickup(d)) {
+        feeBodyEl.innerHTML = '<tr><td colspan="6" class="muted">暂无数据</td></tr>';
+        return;
+      }
+      const feeList = Array.isArray(d?.feeList) ? d.feeList : [];
+      const insuranceByDay = new Map();
+      const commissionByDay = new Map();
+      let globalCommission = "-";
+      const ensureDay = (day) => {
+        if (!insuranceByDay.has(day)) insuranceByDay.set(day, { base: "-", premium: "-", exclusive: "-" });
+        return insuranceByDay.get(day);
+      };
+      feeList.forEach((fee) => {
+        const feeType = String(fee?.feeType || "").toLowerCase();
+        const feeTypeName = String(fee?.feeTypeName || "");
+        const details = Array.isArray(fee?.feeDetailList) ? fee.feeDetailList : [];
+        if (feeType === "storecommission") {
+          const cVal = fee?.feeAmount;
+          globalCommission = cVal == null || String(cVal).trim() === "" ? "-" : cVal;
+          details.forEach((detail) => {
+            const day = detail?.date;
+            if (day) commissionByDay.set(day, globalCommission);
+          });
+        }
+        details.forEach((detail) => {
+          const day = detail?.date;
+          if (!day) return;
+          const t = ensureDay(day);
+          const val = detail?.dailyPrice ?? fee?.feeUnitPrice ?? fee?.feeAmount ?? "-";
+          if (feeType.includes("basicinsurance") || feeTypeName.includes("基础保障")) t.base = val;
+          else if (feeType.includes("premiuminsurance") || feeTypeName.includes("优享保障")) t.premium = val;
+          else if (feeType.includes("exclusiveinsurance") || feeTypeName.includes("尊享保障")) t.exclusive = val;
+        });
+      });
+      const { dailyPricePreferred, dailyPriceFallback } = getOrderFeeDetailPriceMaps(d);
+      const days = Array.from(new Set([...dailyPricePreferred.keys(), ...dailyPriceFallback.keys()])).sort();
+      if (!days.length) {
+        feeBodyEl.innerHTML = '<tr><td colspan="6" class="muted">暂无数据</td></tr>';
+        return;
+      }
+      feeBodyEl.innerHTML = days.map((day) => {
+        const iv = insuranceByDay.get(day) || { base: "-", premium: "-", exclusive: "-" };
+        const commission = commissionByDay.has(day) ? commissionByDay.get(day) : globalCommission;
+        const dailyPrice = dailyPricePreferred.has(day) ? dailyPricePreferred.get(day) : dailyPriceFallback.get(day);
+        return "<tr>"
+          + "<td>" + escapeHtml(String(day)) + "</td>"
+          + "<td>" + escapeHtml(String(dailyPrice)) + "</td>"
+          + "<td>" + escapeHtml(String(commission ?? "-")) + "</td>"
+          + "<td>" + escapeHtml(String(iv.base ?? "-")) + "</td>"
+          + "<td>" + escapeHtml(String(iv.premium ?? "-")) + "</td>"
+          + "<td>" + escapeHtml(String(iv.exclusive ?? "-")) + "</td></tr>";
+      }).join("");
+    };
+
+    const renderChannelPricesTableTo = (container, calJson, options = {}) => {
+      const upstream = calJson?.upstreamBody;
+      const revenueKey = String(options.highlightChannel || "").trim().toLowerCase();
+      if (!revenueKey) {
+        container.className = "channel-prices-wrap muted";
+        container.textContent = "订单缺少渠道，无法筛选收益明细。";
+        return;
+      }
+      let groups = extractChannelPriceGroups(upstream).filter((g) => String(g.channelName || "").trim().toLowerCase() === revenueKey);
+      if (!groups.length) {
+        container.className = "channel-prices-wrap muted";
+        container.textContent = "未找到与订单渠道对应的收益日历价数据（已按映射匹配渠道键：" + revenueKey + "）。";
+        return;
+      }
+      const feeSet = new Set(getOrderFeeDetailDays(options.orderData));
+      const dayMap = new Map();
+      groups.forEach(({ channelName, rows }) => (rows || []).forEach((row) => {
+        const day = row?.day ?? "";
+        if (!dayMap.has(day)) dayMap.set(day, []);
+        dayMap.get(day).push({ channelName, row });
+      }));
+      let orderedDays = Array.from(dayMap.keys()).sort();
+      if (feeSet.size > 0) orderedDays = orderedDays.filter((day) => feeSet.has(day));
+      const cell = (v) => (v == null || String(v).trim() === "") ? "-" : escapeHtml(String(v));
+      let html = '<div class="table-wrap"><table><thead><tr><th>日期</th><th>收益日历价</th><th>收益手续费</th><th>收益基础保障</th><th>收益优享保障</th><th>收益尊享保障</th></tr></thead><tbody>';
+      if (!orderedDays.length) {
+        html += '<tr><td colspan="6" class="muted">无与订单费用明细日期交集的收益数据</td></tr>';
+      } else {
+        orderedDays.forEach((day) => {
+          const entries = dayMap.get(day) || [];
+          entries.forEach((entry, idx) => {
+            const r = entry.row || {};
+            html += "<tr>";
+            if (idx === 0) html += '<td rowspan="' + entries.length + '">' + cell(day) + "</td>";
+            html += "<td>" + cell(r?.price) + "</td><td>" + cell(r?.handlingFee) + "</td><td>" + cell(r?.baseInsurance) + "</td><td>" + cell(r?.premiumInsurance) + "</td><td>" + cell(r?.exclusiveInsurance) + "</td></tr>";
+          });
+        });
+      }
+      html += "</tbody></table></div>";
+      container.className = "channel-prices-wrap";
+      container.innerHTML = html;
+    };
+
+    const renderPriceCompareTo = (headEl, bodyEl, orderData, calUpstreamBody) => {
+      const orderChannelRaw = String(orderData?.distributor || "").trim();
+      if (!orderChannelRaw) {
+        bodyEl.innerHTML = '<tr><td colspan="20" class="muted">订单缺少渠道，无法对比</td></tr>';
+        return false;
+      }
+      const orderChannel = orderChannelRaw.toLowerCase();
+      const revenueChannel = CHANNEL_MAP[orderChannel] || orderChannel;
+      const orderMap = buildOrderMetricsByDay(orderData);
+      const revenueMap = buildRevenueMetricsByDay(calUpstreamBody, revenueChannel);
+      const days = getOrderFeeDetailDays(orderData).filter((day) => orderMap.has(day));
+      const metricDefs = [
+        { key: "dailyPrice", orderLabel: "订单记录日历价" },
+        { key: "baseInsurance", orderLabel: "订单基础保障" },
+        { key: "handlingFee", orderLabel: "订单手续费" },
+        { key: "premiumInsurance", orderLabel: "订单优享保障" },
+        { key: "exclusiveInsurance", orderLabel: "订单尊享保障" },
+      ];
+      const shownMetrics = metricDefs.filter((m) => days.some((day) => orderMap.get(day)?.[m.key] != null));
+      const totalCols = 1 + shownMetrics.length * 2;
+      let hh = "<tr><th rowspan=\"2\">对比日期</th>";
+      shownMetrics.forEach((m) => { hh += "<th class=\"cmp-group-head\" colspan=\"2\">" + escapeHtml(m.orderLabel.replace(/^订单/, "")) + "</th>"; });
+      hh += "</tr><tr>" + shownMetrics.map(() => "<th>订单</th><th>收益</th>").join("") + "</tr>";
+      headEl.innerHTML = hh;
+      if (!days.length) {
+        bodyEl.innerHTML = '<tr><td colspan="' + totalCols + '" class="muted">无可对比价格数据</td></tr>';
+        return false;
+      }
+      let hasDiff = false;
+      bodyEl.innerHTML = days.map((day) => {
+        const o = orderMap.get(day) || {};
+        const r = revenueMap.get(day) || {};
+        let tr = "<tr><td>" + escapeHtml(day) + "</td>";
+        shownMetrics.forEach((m) => {
+          const ov = o[m.key];
+          const rv = r[m.key];
+          const same = ov != null && rv != null && Math.abs(ov - rv) < 1e-9;
+          const cls = same ? "cmp-ok" : "cmp-bad";
+          if (!same) hasDiff = true;
+          tr += "<td class=\"" + cls + " cmp-pair-left\">" + escapeHtml(ov == null ? "-" : String(ov)) + "</td>";
+          tr += "<td class=\"" + cls + " cmp-pair-right\">" + escapeHtml(rv == null ? "-" : String(rv)) + "</td>";
+        });
+        return tr + "</tr>";
+      }).join("");
+      return hasDiff;
+    };
+
+    const runBatchQuery = async (trigger = "manual") => {
+      if (isQueryingBatch) return;
+      isQueryingBatch = true;
       const proxyUrl = $("proxyUrl").value.trim();
       const endpoints = getActiveEndpoints();
       const envLabel = endpoints.label;
-      const targetUrl = endpoints.orderDetail;
       const cookie = $("cookie").value.trim();
-      const orderNo = $("orderNo").value.trim();
+      const orderNoInputEl = $("orderNo");
+      const manualOrderNo = orderNoInputEl ? orderNoInputEl.value.trim() : "";
       const requestMethod = DEFAULT_ORDER_REQUEST_METHOD;
-
-      if (!proxyUrl || !cookie || !orderNo) {
-        setStatus("请填写 Cookie 和订单号（本地代理使用页面内置默认地址）。", false);
+      if (!proxyUrl || !cookie) {
+        setStatus("请填写 Cookie（本地代理使用页面内置默认地址）。", false);
         return;
       }
 
       queryBtn.disabled = true;
       statusEl.className = "status";
-      statusEl.textContent = "查询中...";
-      fieldsEl.innerHTML = "";
-      const feeBadgeEl = $("feeDetailChannelBadge");
-      const revBadgeEl = $("revenueChannelBadge");
-      if (feeBadgeEl) feeBadgeEl.textContent = "";
-      if (revBadgeEl) revBadgeEl.textContent = "";
+      statusEl.textContent = trigger === "timer" ? "定时查询中..." : "查询中...";
       clearFeePendingHint();
-      feeDetailBodyEl.innerHTML = '<tr><td colspan="6" class="muted">加载中...</td></tr>';
-      calendarPriceOut.textContent = "{}";
-      channelPricesTablesEl.className = "channel-prices-wrap muted";
-      channelPricesTablesEl.textContent = "暂无数据";
-      priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">暂无数据</td></tr>';
-      // channelPriceOut.textContent = "{}"; // 渠道价格模块已注释
+      if (batchResultsEl) batchResultsEl.innerHTML = "";
       jsonOut.textContent = "{}";
 
       try {
-        const bodyObj = { cookie, orderNo, targetUrl, requestMethod };
-        const resp = await fetch(proxyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(bodyObj)
-        });
-        const body = await resp.json();
-        jsonOut.textContent = JSON.stringify(body, null, 2);
-        if (!resp.ok || body.success !== true) {
-          setStatus("代理请求失败：" + (body.message || "未知错误"), false);
+        let orderNos = [];
+        if (manualOrderNo) {
+          orderNos = [manualOrderNo];
+          jsonOut.textContent = JSON.stringify({ mode: "single", orderNo: manualOrderNo }, null, 2);
+        } else {
+          const orderListProxyUrl = new URL(proxyUrl).origin + "/api/order-list";
+          const orderListResp = await fetch(orderListProxyUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cookie,
+              targetUrl: endpoints.orderList,
+              listBody: buildOrderListBody(),
+            })
+          });
+          const orderListJson = await orderListResp.json();
+          jsonOut.textContent = JSON.stringify(orderListJson, null, 2);
+          if (!orderListResp.ok || orderListJson.success !== true) {
+            setStatus("订单列表请求失败：" + (orderListJson.message || "未知错误"), false);
+            return;
+          }
+          orderNos = uniqueOrderNos(extractOrderNoListFromListBody(orderListJson.upstreamBody));
+          if (!orderNos.length) {
+            setStatus("订单列表未返回可用 orderNo。", false);
+            return;
+          }
+        }
+        let pendingOrderNos = orderNos;
+        if (!manualOrderNo) {
+          pendingOrderNos = orderNos.filter((orderNo) => !queriedOrderNoHistory.has(orderNo));
+        }
+        if (!pendingOrderNos.length) {
+          setStatus("查询完成（环境：" + envLabel + "），本次列表共 " + orderNos.length + " 条，均为已查询订单，未发现新订单。", true);
           return;
         }
-
-        const upstream = body.upstreamBody;
-        const orderData = upstream?.data ?? upstream;
-        let modelIdFromCar = undefined;
-        let carSpuHint = "";
-        let calendarHint = "";
-        let followUpHint = "";
-
-        const allowFollowUp = isOrderStatusPendingPickup(orderData);
-        if (allowFollowUp) {
-          const billingForCar = pick(orderData, "billingSpuId");
-          if (billingForCar != null && String(billingForCar).trim() !== "") {
-            try {
-              let carSpuUrl;
-              try {
-                carSpuUrl = new URL(proxyUrl).origin + "/api/car-spu-list";
-              } catch (_) {
-                carSpuHint = "本地代理地址不是合法 URL，无法推导车型 list 代理";
-                carSpuUrl = null;
+        let successCount = 0;
+        const diffOrderNos = [];
+        for (let i = 0; i < pendingOrderNos.length; i++) {
+          const orderNo = pendingOrderNos[i];
+          statusEl.textContent = "查询中...（" + (i + 1) + "/" + pendingOrderNos.length + "）";
+          const card = buildOrderGroupCard(orderNo, i, pendingOrderNos.length);
+          if (batchResultsEl) batchResultsEl.appendChild(card);
+          const root = card.querySelector(".order-group-body");
+          const fieldsTarget = root.querySelector('[data-role="fields"]');
+          const feeBody = root.querySelector('[data-role="fee-body"]');
+          const revContainer = root.querySelector('[data-role="revenue"]');
+          const cmpHead = root.querySelector('[data-role="cmp-head"]');
+          const cmpBody = root.querySelector('[data-role="cmp-body"]');
+          const revenueJsonEl = root.querySelector('[data-role="revenue-json"]');
+          const feeBadge = root.querySelector('[data-role="fee-badge"]');
+          const revBadge = root.querySelector('[data-role="rev-badge"]');
+          const pendingHint = root.querySelector('[data-role="pending-hint"]');
+          try {
+            const detailResp = await fetch(proxyUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ cookie, orderNo, targetUrl: endpoints.orderDetail, requestMethod })
+            });
+            const detailJson = await detailResp.json();
+            if (!detailResp.ok || detailJson.success !== true) {
+              fieldsTarget.innerHTML = '<div class="item"><div class="k">提示</div><div class="v v-missing">订单详情请求失败</div></div>';
+              continue;
+            }
+            const upstream = detailJson.upstreamBody;
+            const orderData = upstream?.data ?? upstream;
+            let modelIdFromCar = undefined;
+            // licenseType 枚举：0 普牌，1 京牌，2 粤A，3 粤B，4 沪牌，5 浙A，6 津
+            let licenseTypeFromCar = undefined;
+            renderFieldsTo(fieldsTarget, upstream, { modelId: modelIdFromCar });
+            renderFeeDetailsTo(feeBody, upstream);
+            const rawCh = String(orderData?.distributor ?? "").trim();
+            if (feeBadge) feeBadge.textContent = rawCh ? "（订单渠道：" + rawCh + "）" : "";
+            if (revBadge) {
+              const oc = rawCh.toLowerCase();
+              revBadge.textContent = oc ? "（收益渠道：" + (CHANNEL_MAP[oc] || oc) + "）" : "";
+            }
+            if (!isOrderStatusPendingPickup(orderData)) {
+              if (revenueJsonEl) revenueJsonEl.textContent = "{}";
+              if (pendingHint) {
+                pendingHint.textContent = "当前订单状态非「待取车」，费用明细数值不展示";
+                pendingHint.hidden = false;
               }
-              if (carSpuUrl) {
-                const carPayload = {
-                  cookie,
-                  billingSpuId: String(billingForCar).trim(),
-                  targetUrl: endpoints.carSpuList
-                };
+              revContainer.className = "channel-prices-wrap muted";
+              revContainer.textContent = "仅待取车订单会请求收益数据";
+              cmpBody.innerHTML = '<tr><td colspan="20" class="muted">仅待取车订单进行价格对比</td></tr>';
+              continue;
+            }
+            if (pendingHint) pendingHint.hidden = true;
+            const billingForCar = pick(orderData, "billingSpuId");
+            if (billingForCar != null && String(billingForCar).trim() !== "") {
+              try {
+                const carSpuUrl = new URL(proxyUrl).origin + "/api/car-spu-list";
                 const carResp = await fetch(carSpuUrl, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(carPayload)
+                  body: JSON.stringify({ cookie, billingSpuId: String(billingForCar).trim(), targetUrl: endpoints.carSpuList })
                 });
                 const carJson = await carResp.json();
-                if (carJson.success === true && carJson.extractedModelId != null && String(carJson.extractedModelId).trim() !== "") {
-                  modelIdFromCar = carJson.extractedModelId;
-                } else if (carJson.message) {
-                  carSpuHint = "车型 list：" + carJson.message;
+                if (carJson.success === true) {
+                  if (carJson.extractedModelId != null && String(carJson.extractedModelId).trim() !== "") {
+                    modelIdFromCar = carJson.extractedModelId;
+                    renderFieldsTo(fieldsTarget, upstream, { modelId: modelIdFromCar });
+                  }
+                  if (carJson.extractedLicenseType != null && String(carJson.extractedLicenseType).trim() !== "") {
+                    licenseTypeFromCar = carJson.extractedLicenseType;
+                  }
                 }
-              }
-            } catch (_) {
-              carSpuHint = "车型 list 请求异常";
+              } catch (_) { /* ignore */ }
             }
-          }
-
-          const pickupExpectedYmd = parseCreateDateYmd(pick(orderData, "pickupExpectedTime"));
-          const returnExpectedYmd = parseCreateDateYmd(pick(orderData, "returnExpectedTime"));
-          const storeForCal = pick(orderData, "pickupStoreCode");
-          let calOrigin = null;
-          try {
-            calOrigin = new URL(proxyUrl).origin;
-          } catch (_) {
-            calendarHint = "本地代理地址不是合法 URL，无法请求日历价";
-          }
-          if (!calendarHint && calOrigin && pickupExpectedYmd && returnExpectedYmd && modelIdFromCar != null && String(modelIdFromCar).trim() !== "" && storeForCal != null && String(storeForCal).trim() !== "") {
-            try {
-              const calPayload = {
-                cookie,
-                startDate: pickupExpectedYmd,
-                endDate: returnExpectedYmd,
-                carModelId: String(modelIdFromCar).trim(),
-                storeCode: String(storeForCal).trim(),
-                licenseType: 0,
-                targetUrl: endpoints.calendarPrices
-              };
-              const calResp = await fetch(calOrigin + "/api/load-channel-calendar-prices", {
+            const pickupExpectedYmd = parseCreateDateYmd(pick(orderData, "pickupExpectedTime"));
+            const returnExpectedYmd = parseCreateDateYmd(pick(orderData, "returnExpectedTime"));
+            const storeForCal = pick(orderData, "pickupStoreCode");
+            if (pickupExpectedYmd && returnExpectedYmd && modelIdFromCar != null && String(modelIdFromCar).trim() !== "" && storeForCal != null && String(storeForCal).trim() !== "" && licenseTypeFromCar != null && String(licenseTypeFromCar).trim() !== "") {
+              const calResp = await fetch(new URL(proxyUrl).origin + "/api/load-channel-calendar-prices", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(calPayload)
+                body: JSON.stringify({
+                  cookie,
+                  startDate: pickupExpectedYmd,
+                  endDate: returnExpectedYmd,
+                  carModelId: String(modelIdFromCar).trim(),
+                  storeCode: String(storeForCal).trim(),
+                  licenseType: licenseTypeFromCar,
+                  targetUrl: endpoints.calendarPrices
+                })
               });
               const calJson = await calResp.json();
-              calendarPriceOut.textContent = JSON.stringify(calJson, null, 2);
+              if (revenueJsonEl) revenueJsonEl.textContent = JSON.stringify(calJson, null, 2);
               if (calJson.success === true) {
                 const orderChannel = String(orderData?.distributor || "").toLowerCase();
                 const mappedRevenueChannel = CHANNEL_MAP[orderChannel] || orderChannel;
-                renderChannelPricesTable(calJson, { highlightChannel: mappedRevenueChannel, orderData });
-                renderPriceCompare(orderData, calJson?.upstreamBody);
+                renderChannelPricesTableTo(revContainer, calJson, { highlightChannel: mappedRevenueChannel, orderData });
+                const hasDiff = renderPriceCompareTo(cmpHead, cmpBody, orderData, calJson?.upstreamBody);
+                if (hasDiff) {
+                  card.classList.add("has-diff");
+                  diffOrderNos.push(orderNo);
+                }
               } else {
-                channelPricesTablesEl.className = "channel-prices-wrap muted";
-                channelPricesTablesEl.textContent = "暂无数据";
-                priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">收益价格查询失败，无法对比</td></tr>';
+                if (revenueJsonEl) revenueJsonEl.textContent = JSON.stringify(calJson, null, 2);
+                revContainer.className = "channel-prices-wrap muted";
+                revContainer.textContent = "暂无数据";
               }
-              if (calJson.success !== true && calJson.message) {
-                calendarHint = "日历价：" + calJson.message;
-              }
-            } catch (_) {
-              calendarHint = "日历价请求异常";
-              channelPricesTablesEl.className = "channel-prices-wrap muted";
-              channelPricesTablesEl.textContent = "暂无数据";
+            } else {
+              const missingReasons = [];
+              if (!(pickupExpectedYmd && returnExpectedYmd)) missingReasons.push("订单取还车时间缺失");
+              if (!(modelIdFromCar != null && String(modelIdFromCar).trim() !== "")) missingReasons.push("车辆接口未返回 modelId");
+              if (!(storeForCal != null && String(storeForCal).trim() !== "")) missingReasons.push("订单缺少 pickupStoreCode");
+              if (!(licenseTypeFromCar != null && String(licenseTypeFromCar).trim() !== "")) missingReasons.push("车辆接口未返回 licenseType");
+              if (revenueJsonEl) revenueJsonEl.textContent = JSON.stringify({ success: false, message: "未请求收益接口", reasons: missingReasons }, null, 2);
+              revContainer.className = "channel-prices-wrap muted";
+              revContainer.textContent = missingReasons.join("；") || "暂无数据";
             }
-          } else if (!calendarHint && (modelIdFromCar == null || String(modelIdFromCar).trim() === "")) {
-            /* 无车型 id 时不请求 */
-          } else if (!calendarHint && !pickupExpectedYmd) {
-            calendarHint = "预计取车时间无法解析为日期，未请求日历价";
-          } else if (!calendarHint && !returnExpectedYmd) {
-            calendarHint = "预计还车时间无法解析为日期，未请求日历价";
-          } else if (!calendarHint && (storeForCal == null || String(storeForCal).trim() === "")) {
-            calendarHint = "缺少取车门店编码，未请求日历价";
+            successCount += 1;
+          } catch (_) {
+            fieldsTarget.innerHTML = '<div class="item"><div class="k">提示</div><div class="v v-missing">该订单查询异常</div></div>';
           }
-        } else {
-          const os = Number(pick(orderData, "orderStatus"));
-          const ost = ORDER_STATUS_MAP[Number.isFinite(os) ? os : NaN] ?? pick(orderData, "statusName") ?? pick(orderData, "orderStatus") ?? "未知";
-          followUpHint = "已跳过车型 list、日历价与收益对比（非待取车）";
-          calendarPriceOut.textContent = "{}";
-          channelPricesTablesEl.className = "channel-prices-wrap muted";
-          channelPricesTablesEl.textContent = "仅待取车订单会请求收益数据";
-          priceCompareBodyEl.innerHTML = '<tr><td colspan="20" class="muted">仅待取车订单进行价格对比</td></tr>';
         }
-
-        renderFields(upstream, { modelId: modelIdFromCar });
-        renderFeeDetails(upstream);
-        if (isOrderStatusPendingPickup(orderData)) {
-          clearFeePendingHint();
-        } else {
-          showFeePendingHint();
-        }
-        syncSectionChannelBadges(orderData);
-
-        /*
-        门店编码 pickupStoreCode + billingSpuId → POST queryBatchChannelPrice
-        入参：{ storeCode, hatchbackCode }（已注释）
-        const orderData = upstream?.data ?? upstream;
-        const pickupStore = orderData?.pickupStoreCode;
-        const billingSpu = orderData?.billingSpuId;
-        if (pickupStore && billingSpu) {
-          try {
-            const channelBody = {
-              cookie,
-              storeCode: String(pickupStore).trim(),
-              hatchbackCode: String(billingSpu).trim(),
-              targetUrl: $("channelPriceTargetUrl").value.trim()
-            };
-            if (extraHeaders) channelBody.extraHeaders = extraHeaders;
-            const cResp = await fetch($("channelPriceProxyUrl").value.trim(), {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(channelBody)
-            });
-            const cJson = await cResp.json();
-            channelPriceOut.textContent = JSON.stringify(cJson, null, 2);
-          } catch (ce) {
-            channelPriceOut.textContent = JSON.stringify(
-              { success: false, message: "渠道价格请求异常：" + (ce?.message || String(ce)) },
-              null,
-              2
-            );
-          }
-        } else {
-          channelPriceOut.textContent = JSON.stringify(
-            {
-              success: false,
-              message: "未自动请求渠道价格：订单详情中缺少 pickupStoreCode 或 billingSpuId",
-              pickupStoreCode: pickupStore ?? null,
-              billingSpuId: billingSpu ?? null
-            },
-            null,
-            2
-          );
-        }
-        */
-
-        const msg = upstream?.msg || upstream?.message || "";
-        const us = body.upstreamStatus;
-        const upstream403 = Number(us) === 403;
-        setStatus(
-          "查询完成（环境：" + envLabel + "）。上游状态码：" + us + "，方法：" + (body.resolvedMethod || requestMethod) + (msg ? "，" + msg : "") + (followUpHint ? "；" + followUpHint : "") + (carSpuHint ? "；" + carSpuHint : "") + (calendarHint ? "；" + calendarHint : "") + (upstream403 ? "（403 多为 Cookie 过期、缺鉴权头或网关拦截，请更新 Cookie）" : ""),
-          !upstream403
-        );
+        if (!manualOrderNo) pendingOrderNos.forEach((orderNo) => queriedOrderNoHistory.add(orderNo));
+        uniqueOrderNos(diffOrderNos).forEach((no) => cumulativeDiffOrderNoSet.add(no));
+        renderDiffOrderNos(Array.from(cumulativeDiffOrderNoSet));
+        setStatus("查询完成（环境：" + envLabel + "），本次列表共 " + orderNos.length + " 条，实际查询 " + pendingOrderNos.length + " 条，跳过重复 " + (orderNos.length - pendingOrderNos.length) + " 条，成功 " + successCount + " 条。", successCount > 0);
       } catch (e) {
         setStatus("请求异常：" + (e?.message || String(e)), false);
       } finally {
         queryBtn.disabled = false;
+        isQueryingBatch = false;
       }
+    };
+
+    queryBtn.addEventListener("click", async () => {
+      if (!autoQueryTimerId) {
+        autoQueryTimerId = setInterval(() => {
+          runBatchQuery("timer");
+        }, 5 * 60 * 1000);
+      }
+      runBatchQuery("manual");
     });
+
+    if (batchResultsEl) {
+      batchResultsEl.addEventListener("click", async (ev) => {
+        const btn = ev.target && ev.target.closest ? ev.target.closest(".copy-order-btn") : null;
+        if (!btn) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const orderNo = btn.getAttribute("data-order-no") || "";
+        if (!orderNo) return;
+        const oldText = btn.textContent;
+        try {
+          await navigator.clipboard.writeText(orderNo);
+          btn.textContent = "已复制";
+          setTimeout(() => { btn.textContent = oldText; }, 1200);
+        } catch (_) {
+          btn.textContent = "复制失败";
+          setTimeout(() => { btn.textContent = oldText; }, 1200);
+        }
+      });
+    }
 
     initRuntimeEnvUI();
   </script>
